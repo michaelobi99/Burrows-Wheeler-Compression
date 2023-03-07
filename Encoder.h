@@ -3,9 +3,14 @@
 #include <chrono>
 #include <ranges>
 #include <execution>
-#include "BitIO.h"
+#include <filesystem>
+#include "Huffman.h"
+
+namespace fs = std::filesystem;
+
 
 #define BLOCK_SIZE (1 << 20)
+#define END_OF_BLOCK 255 //we assume that the 255th ASCII doesn't appear in the input text
 
 struct charLocation {
 	char ch;
@@ -58,6 +63,8 @@ char* bwtTransform(char* inputString, size_t length, size_t& originalStringLocat
 }
 //***************************************************************************************************************************
 
+
+
 //***************************************************************************************************************************
 //Move to front encoding
 unsigned char* mtfEncoding(char* bwtString, size_t length) {
@@ -78,9 +85,13 @@ unsigned char* mtfEncoding(char* bwtString, size_t length) {
 	}
 	return mtfString;
 }
+//****************************************************************************************************************************
 
 
-void compressFile(std::fstream& input, std::fstream& output)  {
+
+
+void compressFile(std::fstream& input, std::unique_ptr<stl::BitFile>& output)  {
+	std::fstream mtfFile{ "temp.txt", std::ios_base::out | std::ios_base::binary };
 	char* inputString = new char[BLOCK_SIZE];
 	size_t length{};
 	char ch{};
@@ -89,16 +100,25 @@ void compressFile(std::fstream& input, std::fstream& output)  {
 		input.read(inputString, BLOCK_SIZE);
 		length = input.gcount();
 		char* bwtString = bwtTransform(inputString, length, originalStringLocation);
-		output.write(bwtString, length);
 		unsigned char* mtfString = mtfEncoding(bwtString, length);
-		//output.write(reinterpret_cast<char*>(mtfString), length);
-		std::cout << "mtfString: ";
-		for (int i = 0; i < length; ++i)
-			std::cout << (int)mtfString[i]<<" ";
+		mtfFile.write(reinterpret_cast<char*>(&originalStringLocation), sizeof(size_t)); //write position of original string
+		mtfFile.write(reinterpret_cast<char*>(&length), sizeof(size_t)); //write size of block
+		mtfFile.write(reinterpret_cast<char*>(mtfString), length); //write block
 		delete[] bwtString;
 		delete[] mtfString;
 		if (length < BLOCK_SIZE)
 			break;
 	}
 	delete []inputString;
+	mtfFile.clear();
+	mtfFile.close();
+	mtfFile.open("temp.txt", std::ios_base::in | std::ios_base::binary);
+	huffCompress(mtfFile, output);
+	mtfFile.close();
+	std::error_code err;
+	fs::remove("temp.txt", err);
+}
+
+void expandFile(std::fstream input, std::fstream& output) {
+
 }

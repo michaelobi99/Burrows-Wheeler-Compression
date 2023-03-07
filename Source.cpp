@@ -1,10 +1,8 @@
-#include <filesystem>
 #include <chrono>
 #include <format>
 #include "Decoder.h"
 #include "Encoder.h"
 
-namespace fs = std::filesystem;
 
 struct Timer {
 public:
@@ -35,8 +33,8 @@ int main() {
 	auto timer = Timer();
 	try {
 		std::fstream input(R"(..\Burrows-Wheeler-Transfrom\testFile.txt)", std::ios_base::in | std::ios_base::binary);
-		std::fstream output(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)", std::ios_base::out | std::ios_base::binary);
-		//auto output = stl::OpenOutputBitFile(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)");
+		//std::fstream output(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)", std::ios_base::out | std::ios_base::binary);
+		auto output = stl::OpenOutputBitFile(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)");
 		std::cout << "compression started....\n";
 		timer.Start();
 		compressFile(input, output);
@@ -44,8 +42,7 @@ int main() {
 		printf("\nFile compression complete\n");
 		printf("BWT encoding compression time = %f seconds\n\n", timer.time());
 		input.close();
-		output.close();
-		//stl::closeOutputBitFile(output);
+		stl::closeOutputBitFile(output);
 
 		//auto input1 = stl::OpenInputBitFile(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)");
 		/*std::fstream input1(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)", std::ios_base::in | std::ios_base::binary);
@@ -60,9 +57,9 @@ int main() {
 		//output1.close();
 
 		//print file sizes
-		/*std::cout << std::format("Original file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\testFile1.txt)")));
+		std::cout << std::format("Original file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\testFile.txt)")));
 		std::cout << std::format("Compressed file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)")));
-		std::cout << std::format("Expanded file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\testFile3.txt)")));*/
+		//std::cout << std::format("Expanded file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\testFile3.txt)")));
 	}
 	catch (stl::FileError const& error) {
 		std::cout << error.what();
