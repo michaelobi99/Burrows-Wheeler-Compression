@@ -3,4 +3,6 @@
 
 
 
-//void expandFile(std)
+void expandFile(std::fstream& input, std::fstream& output) {
+
+}

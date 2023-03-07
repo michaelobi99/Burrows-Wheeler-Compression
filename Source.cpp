@@ -34,7 +34,7 @@ uintmax_t fileSize(fs::path const& path) {
 int main() {
 	auto timer = Timer();
 	try {
-		std::fstream input(R"(..\Burrows-Wheeler-Transfrom\testFile1.txt)", std::ios_base::in | std::ios_base::binary);
+		std::fstream input(R"(..\Burrows-Wheeler-Transfrom\testFile.txt)", std::ios_base::in | std::ios_base::binary);
 		std::fstream output(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)", std::ios_base::out | std::ios_base::binary);
 		//auto output = stl::OpenOutputBitFile(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)");
 		std::cout << "compression started....\n";
