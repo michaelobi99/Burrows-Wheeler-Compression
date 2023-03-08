@@ -10,7 +10,7 @@
 namespace fs = std::filesystem;
 
 
-#define BLOCK_SIZE (1 << 20)
+#define BLOCK_SIZE ((1 << 10) * 5)
 
 #define END_OF_BLOCK 255 //I assume that the 255th ASCII doesn't appear in the input text
 
@@ -26,7 +26,7 @@ struct suffixCompare {
 		size_t i = s1.index;
 		size_t j = s2.index;
 		int res = strcmp_(*(s1.ch + i), *(s2.ch + j));
-		while (res == 0 && --blockSize) {
+		while (--blockSize && res == 0) {
 			i = (i + 1) % s1.blockSize;
 			j = (j + 1) % s1.blockSize;
 			res = strcmp_(*(s1.ch + i), *(s2.ch + j));
@@ -149,18 +149,21 @@ char* mtfDecode(unsigned char* mtfString, size_t length) {
 
 void compressFile(std::fstream& input, std::unique_ptr<stl::BitFile>& output)  {
 	std::fstream mtfFile{ "temp.txt", std::ios_base::out | std::ios_base::binary };
-	char* originalString = new char[BLOCK_SIZE];
+	char* originalString = new char[BLOCK_SIZE]; //additional space for length and position
 	size_t length{};
 	size_t originalStringLocation{};
 	do {
 		input.read(originalString, BLOCK_SIZE);
 		length = input.gcount();
 		char* bwtString = burrowsWheelerForwardTransform(originalString, length, originalStringLocation);
+		/*char* lptr = (char*)(&length);
+		char* pptr = (char*)(&originalStringLocation);
+		memcpy(originalString + 4, lptr, sizeof(size_t));
+		memcpy(originalString, pptr, sizeof(size_t));*/
 		unsigned char* mtfString = mtfEncode(bwtString, length);
 		mtfFile.write(reinterpret_cast<char*>(&originalStringLocation), sizeof(size_t)); //write position of original string
 		mtfFile.write(reinterpret_cast<char*>(&length), sizeof(size_t)); //write size of block
 		mtfFile.write(reinterpret_cast<char*>(mtfString), length); //write block
-		printf("got here\n");
 		delete[] bwtString;
 		delete[] mtfString;
 	} while (length == BLOCK_SIZE);
