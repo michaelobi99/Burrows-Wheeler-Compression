@@ -11,7 +11,7 @@ namespace fs = std::filesystem;
 
 #define BLOCK_SIZE ((1 << 10) * 750)
 
-#define END_OF_BLOCK 255 //I assume that the 255th ASCII doesn't appear in the input text
+//#define END_OF_BLOCK 255 //I assume that the 255th ASCII doesn't appear in the input text
 
 struct suffix {
 	char* ch{};
@@ -20,27 +20,29 @@ struct suffix {
 };
 
 struct suffixCompare {
-	bool operator() (suffix& s1, suffix& s2) {
+	bool operator() (suffix const& s1, suffix const& s2) const {
 		size_t blockSize = s1.blockSize;
 		size_t i = s1.index;
 		size_t j = s2.index;
-		int res = strcmp_(*(s1.ch + i), *(s2.ch + j));
+		int res = strcmp_(s1.ch + i, s2.ch + j);
 		while (--blockSize && res == 0) {
-			i = (i + 1) % s1.blockSize;
-			j = (j + 1) % s1.blockSize;
-			res = strcmp_(*(s1.ch + i), *(s2.ch + j));
+			if ((++i) == s1.blockSize)
+				i = (i) % s1.blockSize;
+			if ((++j) == s1.blockSize)
+				j = (j) % s1.blockSize;
+			res = strcmp_(s1.ch + i, s2.ch + j);
 		}
-		return res < 1 ? true : false;
+		return res < 0;
 	}
-	int strcmp_(char c1, char c2) {
-		if (c1 == c2) return 0;
-		if (c1 < c2) return -1;
+	inline int strcmp_(char* c1, char* c2) const {
+		if (*c1 == *c2) return 0;
+		if (*c1 < *c2) return -1;
 		return 1;
 	}
 };
 
 //**************************************************************************************************************************
-//BWT Forward Transform
+//BW Transform
 char* getLastChars(std::vector<suffix> const& sortedChars, char* originalString, size_t& originalStringLocation) {
 	size_t len = sortedChars.size();
 	char* bwtString = new char [len];
@@ -161,7 +163,6 @@ void compressFile(std::fstream& input, std::unique_ptr<stl::BitFile>& output)  {
 		delete[] bwtString;
 		delete[] mtfString;
 	} while (length == BLOCK_SIZE);
-
 	delete []originalString;
 	mtfFile.clear();
 	mtfFile.close();
