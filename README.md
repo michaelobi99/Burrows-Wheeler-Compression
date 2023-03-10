@@ -1,26 +1,25 @@
 Unlike most other compression methods, the Burrows-Wheeler method works in block mode. The input stream is read block by block
 and encoded separately as one string. It is also known as the block-sorting compression. BW method usually compresses as good as
-PPM method without being as slow. The speed of BW method is usually on par with the LZ family of compressors.
+PPM method without being as slow. The speed of BW method is usually on par with the LZ family of compressors. The speed usually 
+depends on the size of the block and how much comparisons need to be done to sort each row in the block
+
 
 This implementation uses an array data structure to hold the blocks and their rotations. A more efficient method is to use suffix trees
-for sorting.
+for sorting. 
 
-Compression Efficiency:
-I tested the algorithm on several files with very good compression ratios, usually (4-5) : 1, and in one case i got a compression ratio of about
-100 (the file content was very skewed).
-The compression efficiency was slightly improved after implenting exclusion.
 
-average Compression speed: testFile -> caglary corpus
-(the speed usually depends on the size of the block and how much comparisons need to be done to sort each row in the block)
+Compression Efficiency: (calgary corpus)
 Encoding => 1 mb/sec.
 Decoding => 2.5 mb/sec
 
 system specs: core i5, 8GB RAM, 1.9GHZ processor speed.
 
 The table below shows the compression efficiency of this implementation when compressing the calgary corpus. I also include the 
-results of Cleary and Witten implementation for comparisons.
+results of Burrows-Wheeler implementation for comparisons.
 
-|file    |   size(bytes)    |     bpc(BW94)     | BW(mine)(750kblock)  |
+Block size: 750 kb
+
+|file    |   size(bytes)    |     bpc(BW94)     |      bpc(mine)       |
 |--------|------------------|-------------------|----------------------|
 |bib     |  111261			|      2.07		    |		2.38		   |
 |book1   |  768771			|      2.49		    |		2.69		   |
