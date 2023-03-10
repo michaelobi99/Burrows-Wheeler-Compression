@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cctype>
 
+const char* compressionName = "Adaptive Huffman coding, with escape codes\n";
+const char* usage = "infile outfile\n";
 
 #define END_OF_STREAM 256
 #define ESCAPE 257
@@ -220,24 +222,26 @@ int DecodeSymbol(Tree& tree, std::unique_ptr<stl::BitFile>& input) {
 }
 
 
-void huffCompress(char* input, size_t length, std::unique_ptr<stl::BitFile>& output) {
+void huffCompress(std::fstream& input, std::unique_ptr<stl::BitFile>& output) {
 	unsigned int c;
 	Tree tree;
 	initializeTree(tree);
-	for (unsigned i = 0; i < length; i++) {
-		EncodeSymbol(tree, input[i], output);
-		UpdateModel(tree, input[i]);
+	while ((c = input.get()) != EOF) {
+		EncodeSymbol(tree, c, output);
+		UpdateModel(tree, c);
 	}
 	EncodeSymbol(tree, END_OF_STREAM, output);
 }
 
-void huffExpand(std::unique_ptr<stl::BitFile>& input, unsigned char* output) {
+void huffExpand(std::unique_ptr<stl::BitFile>& input, std::fstream& output) {
 	int c;
 	int counter{ 0 };
 	Tree tree;
 	initializeTree(tree);
 	while ((c = DecodeSymbol(tree, input)) != END_OF_STREAM) {
-		output[counter++] = (unsigned char)c;
+		if (!output.put(c)) {
+			throw;
+		}
 		UpdateModel(tree, c);
 	}
 }
