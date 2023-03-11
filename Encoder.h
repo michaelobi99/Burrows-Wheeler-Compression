@@ -9,7 +9,7 @@
 
 namespace fs = std::filesystem;
 
-#define BLOCK_SIZE ((1 << 10) * 750)
+#define BLOCK_SIZE ((1 << 10) * 4000)
 
 //#define END_OF_BLOCK 255 //I assume that the 255th ASCII doesn't appear in the input text
 

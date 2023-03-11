@@ -1,6 +1,5 @@
 #include <chrono>
 #include <format>
-#include "Decoder.h"
 #include "Encoder.h"
 
 
@@ -32,7 +31,7 @@ uintmax_t fileSize(fs::path const& path) {
 int main() {
 	auto timer = Timer();
 	try {
-		std::fstream input(R"(..\Burrows-Wheeler-Transfrom\caglary corpus\progp)", std::ios_base::in | std::ios_base::binary);
+		std::fstream input(R"(..\Burrows-Wheeler-Transfrom\enwik9)", std::ios_base::in | std::ios_base::binary);
 		auto output = stl::OpenOutputBitFile(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)");
 		std::cout << "compression started....\n";
 		timer.Start();
@@ -56,11 +55,11 @@ int main() {
 
 		//print file sizes
 		
-		std::cout << std::format("Original file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\caglary corpus\progp)")));
+		std::cout << std::format("Original file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\enwik9)")));
 		std::cout << std::format("Compressed file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)")));
 		std::cout << std::format("Expanded file size = {} bytes\n", fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\testFile3.txt)")));
 		std::cout << std::format("compression efficiency = {} \n", (8 * fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\testFile2.txt)"))) 
-			/ float(fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\caglary corpus\progp)"))));
+			/ float(fileSize(fs::path(R"(..\Burrows-Wheeler-Transfrom\enwik9)"))));
 	}
 	catch (stl::FileError const& error) {
 		std::cout << error.what();
