@@ -9,8 +9,8 @@ for sorting.
 
 
 Compression Efficiency: (calgary corpus)
-Encoding => 1 mb/sec.
-Decoding => 2.5 mb/sec
+Encoding => 2.5 mb/sec.
+Decoding => 5.5 mb/sec
 
 system specs: core i5, 8GB RAM, 1.9GHZ processor speed.
 
