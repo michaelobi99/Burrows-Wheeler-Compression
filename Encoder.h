@@ -4,26 +4,25 @@
 #include <ranges>
 #include <execution>
 #include <filesystem>
-#include <unordered_set>
 #include "Huffman.h"
 
 namespace fs = std::filesystem;
 
-#define BLOCK_SIZE ((1 << 10) * 4000)
+#define BLOCK_SIZE ((1 << 10) * 750)
 
 //#define END_OF_BLOCK 255 //I assume that the 255th ASCII doesn't appear in the input text
 
 struct suffix {
 	char* ch{};
-	size_t index{};
-	size_t blockSize{};
+	int index{};
+	int blockSize{};
 };
 
 struct suffixCompare {
 	bool operator() (suffix const& s1, suffix const& s2) const {
-		size_t blockSize = s1.blockSize;
-		size_t i = s1.index;
-		size_t j = s2.index;
+		int blockSize = s1.blockSize;
+		int i = s1.index;
+		int j = s2.index;
 		int res = strcmp_(s1.ch + i, s2.ch + j);
 		while (--blockSize && res == 0) {
 			if ((++i) == s1.blockSize)
@@ -43,11 +42,11 @@ struct suffixCompare {
 
 //**************************************************************************************************************************
 //BW Transform
-char* getLastChars(std::vector<suffix> const& sortedChars, char* originalString, size_t& originalStringLocation) {
-	size_t len = sortedChars.size();
+char* getLastChars(suffix* sortedChars, char* originalString, int& originalStringLocation, int length) {
+	int len = length;
 	char* bwtString = new char [len];
-	for (size_t i{ 0 }; i < len; ++i) {
-		size_t j = sortedChars[i].index;
+	for (int i{ 0 }; i < len; ++i) {
+		int j = sortedChars[i].index;
 		if (j == 0) {
 			j += len;
 			originalStringLocation = i;
@@ -57,21 +56,24 @@ char* getLastChars(std::vector<suffix> const& sortedChars, char* originalString,
 	return bwtString;
 }
 
-char* burrowsWheelerForwardTransform(char* inputString, size_t length, size_t& originalStringLocation) {
-	std::vector<suffix> vec(length);
+char* burrowsWheelerForwardTransform(char* inputString, int length, int& originalStringLocation) {
+	suffix* vec = new suffix[length];
 	for (int i{ 0 }; i < length; ++i) {
 		vec[i].ch = inputString;
 		vec[i].index = i;
 		vec[i].blockSize = length;
 	}
-	std::sort(std::execution::par, std::begin(vec), std::end(vec), suffixCompare());
-	return getLastChars(vec, inputString, originalStringLocation);
+	std::sort(std::execution::par, vec, vec + length, suffixCompare());
+	char* lastChars = getLastChars(vec, inputString, originalStringLocation, length);
+	delete[] vec;
+	return lastChars;
 }
 
-char* burrowsWheelerReverseTransform(char* bwtString, size_t length, size_t position) {
+
+char* burrowsWheelerReverseTransform(char* bwtString, int length, int position) {
 	struct charLocation {
-		size_t indexInFirstCol{};
-		size_t indexInLastCol{};
+		int indexInFirstCol{};
+		int indexInLastCol{};
 		char ch{};
 		bool operator< (charLocation const& b) const{
 			return ch < b.ch;
@@ -79,19 +81,19 @@ char* burrowsWheelerReverseTransform(char* bwtString, size_t length, size_t posi
 	};
 	char* originalString = new char[length];
 	charLocation* firstColunmStr = new charLocation[length];
-	for (size_t i = 0; i < length; ++i) {
+	for (int i = 0; i < length; ++i) {
 		firstColunmStr[i].indexInLastCol = i;
 		firstColunmStr[i].ch = bwtString[i];
 	}
 	std::stable_sort(std::execution::par, firstColunmStr, firstColunmStr + length);
-	for (size_t i = 0; i < length; ++i) {
+	for (int i = 0; i < length; ++i) {
 		firstColunmStr[i].indexInFirstCol = i;
 	}
-	size_t* tempArray = new size_t[length];
+	int* tempArray = new int[length];
 	for (int i = 0; i < length; ++i) {
 		tempArray[firstColunmStr[i].indexInLastCol] = firstColunmStr[i].indexInFirstCol;
 	}
-	size_t n = length - 1, i = 0, T = position;
+	int n = length - 1, i = 0, T = position;
 	originalString[n] = bwtString[T];
 	for (i = 1; i < length; ++i) {
 		originalString[--n] = bwtString[tempArray[T]];
@@ -101,22 +103,22 @@ char* burrowsWheelerReverseTransform(char* bwtString, size_t length, size_t posi
 	delete[] tempArray;
 	return originalString;
 }
-
 //***************************************************************************************************************************
 
 
 
 //***************************************************************************************************************************
 //Move to front encoding
-unsigned char* mtfEncode(char* bwtString, size_t length) {
+unsigned char* mtfEncode(char* bwtString, int length) {
 	unsigned char alphabets[256];
 	for (unsigned i = 0; i < 256; ++i)
 		alphabets[i] = (unsigned char)i;
-	unsigned char* mtfString = new unsigned char[length];
+	auto s = sizeof(int) * 2;
+	unsigned char* mtfString = new unsigned char[length + s];
 	for (unsigned i{ 0 }; i < length; ++i) {
 		for (unsigned j = 0; j < 256; ++j) {
 			if (bwtString[i] == alphabets[j]) {
-				mtfString[i] = (unsigned char)j;
+				mtfString[i + s] = (unsigned char)j;
 				unsigned char temp = alphabets[j];
 				memmove(alphabets + 1, alphabets, j);
 				alphabets[0] = temp;
@@ -128,7 +130,7 @@ unsigned char* mtfEncode(char* bwtString, size_t length) {
 }
 
 //move to front decoding
-char* mtfDecode(unsigned char* mtfString, size_t length) {
+char* mtfDecode(unsigned char* mtfString, int length) {
 	char alphabets[256];
 	for (unsigned i = 0; i < 256; ++i)
 		alphabets[i] = (char)i;
@@ -148,53 +150,47 @@ char* mtfDecode(unsigned char* mtfString, size_t length) {
 
 
 void compressFile(std::fstream& input, std::unique_ptr<stl::BitFile>& output)  {
-	std::fstream mtfFile{ "temp.txt", std::ios_base::out | std::ios_base::binary };
 	char* originalString = new char[BLOCK_SIZE]; //additional space for length and position
-	size_t length{};
-	size_t originalStringLocation{};
+	int length{};
+	int originalStringLocation{};
+	int extraSpace = sizeof(int) * 2;
 	do {
 		input.read(originalString, BLOCK_SIZE);
 		length = input.gcount();
 		char* bwtString = burrowsWheelerForwardTransform(originalString, length, originalStringLocation);
 		unsigned char* mtfString = mtfEncode(bwtString, length);
-		mtfFile.write(reinterpret_cast<char*>(&originalStringLocation), sizeof(size_t)); //write position of original string
-		mtfFile.write(reinterpret_cast<char*>(&length), sizeof(size_t)); //write size of block
-		mtfFile.write(reinterpret_cast<char*>(mtfString), length); //write block
 		delete[] bwtString;
+		unsigned char* ptr = reinterpret_cast<unsigned char*>(&originalStringLocation);
+		unsigned char* ptr1 = reinterpret_cast<unsigned char*>(&length);
+		int i = 0;
+		mtfString[i++] = ptr[0];
+		mtfString[i++] = ptr[1];
+		mtfString[i++] = ptr[2];
+		mtfString[i++] = ptr[3];
+		mtfString[i++] = ptr1[0];
+		mtfString[i++] = ptr1[1];
+		mtfString[i++] = ptr1[2];
+		mtfString[i] = ptr1[3];
+		huffCompress(mtfString, length + extraSpace, output);
 		delete[] mtfString;
 	} while (length == BLOCK_SIZE);
 	delete []originalString;
-	mtfFile.clear();
-	mtfFile.close();
-	mtfFile.open("temp.txt", std::ios_base::in | std::ios_base::binary);
-	huffCompress(mtfFile, output);
-	mtfFile.close();
-	std::error_code err;
-	fs::remove("temp.txt", err);
 }
 
 void expandFile(std::unique_ptr<stl::BitFile>& input, std::fstream& output) {
-	std::fstream mtfFile{ "temp.txt", std::ios_base::out | std::ios_base::binary };
-	huffExpand(input, mtfFile);
-	mtfFile.clear();
-	mtfFile.close();
-	mtfFile.open("temp.txt", std::ios_base::in | std::ios_base::binary);
-	size_t length{}; //block length
-	size_t originalStringLocation{};
-	mtfFile.read(reinterpret_cast<char*>(&originalStringLocation), sizeof(size_t));
-	while (!mtfFile.eof()) {
-		mtfFile.read(reinterpret_cast<char*>(&length), sizeof(size_t));
-		unsigned char* mtfString = new unsigned char[length];
-		mtfFile.read(reinterpret_cast<char*>(mtfString), length);
-		char* bwtString = mtfDecode(mtfString, length);
+	int extraSpace = sizeof(int) * 2;
+	unsigned char* mtfString = new unsigned char[BLOCK_SIZE + extraSpace];
+	int length{}; //block length
+	int originalStringLocation{};
+	do {
+		huffExpand(input, mtfString);
+		originalStringLocation = *(int*)(mtfString);
+		length = *(int*)(mtfString + sizeof(int));
+		char* bwtString = mtfDecode(mtfString + extraSpace, length);
 		char* originalString = burrowsWheelerReverseTransform(bwtString, length, originalStringLocation);
 		output.write(originalString, length);
-		delete []mtfString;
-		delete []bwtString;
-		delete []originalString;
-		mtfFile.read(reinterpret_cast<char*>(&originalStringLocation), sizeof(size_t));
-	}
-	mtfFile.close();
-	std::error_code err;
-	fs::remove("temp.txt", err);
+		delete[]bwtString;
+		delete[]originalString;
+	} while (length == BLOCK_SIZE);
+	delete []mtfString;
 }

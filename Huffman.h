@@ -222,26 +222,26 @@ int DecodeSymbol(Tree& tree, std::unique_ptr<stl::BitFile>& input) {
 }
 
 
-void huffCompress(std::fstream& input, std::unique_ptr<stl::BitFile>& output) {
+void huffCompress(unsigned char* input, size_t length, std::unique_ptr<stl::BitFile>& output) {
 	unsigned int c;
 	Tree tree;
 	initializeTree(tree);
-	while ((c = input.get()) != EOF) {
+	size_t i = 0;
+	while (i < length) {
+		c = input[i++];
 		EncodeSymbol(tree, c, output);
 		UpdateModel(tree, c);
 	}
 	EncodeSymbol(tree, END_OF_STREAM, output);
 }
 
-void huffExpand(std::unique_ptr<stl::BitFile>& input, std::fstream& output) {
+void huffExpand(std::unique_ptr<stl::BitFile>& input, unsigned char* output) {
 	int c;
 	int counter{ 0 };
 	Tree tree;
 	initializeTree(tree);
 	while ((c = DecodeSymbol(tree, input)) != END_OF_STREAM) {
-		if (!output.put(c)) {
-			throw;
-		}
+		output[counter++] = c;
 		UpdateModel(tree, c);
 	}
 }
